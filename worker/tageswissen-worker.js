@@ -46,8 +46,8 @@ const ZU_KLEINTEILIG = /zeit\.de\/news\//i;
 
 /* Weltraumbild: Astronomy Picture of the Day (Feed), sonst NASA Image of the Day */
 const BILDQUELLEN = [
-  { name: "NASA APOD",          url: "https://science.nasa.gov/feed/apod-basic/" },
-  { name: "NASA Bild des Tages", url: "https://www.nasa.gov/feeds/iotd-feed/" }
+  { name: "NASA Bild des Tages", url: "https://www.nasa.gov/feeds/iotd-feed/" },
+  { name: "NASA APOD",          url: "https://science.nasa.gov/feed/apod-basic/" }
 ];
 
 /* Wörter, die beim Erkennen gemeinsamer Themen nicht zählen */
@@ -65,7 +65,7 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
 
     const cache = caches.default;
-    const schluessel = new Request(new URL("/tageswissen-v2", request.url).toString());
+    const schluessel = new Request(new URL("/tageswissen-v3", request.url).toString());
     const frisch = new URL(request.url).searchParams.has("frisch");
     if (!frisch) {
       const treffer = await cache.match(schluessel);
@@ -87,6 +87,7 @@ export default {
       themen: themen([ts.top, ...nachrichten]),
       schlagzeilen: mische(nachrichten.map(g => g.slice(0, 4)), 40),
       raumbild: (bilder.flat().find(b => b.bild) || null),
+      raumbilder: bilder.flat().filter(b => b.bild).slice(0, 4),
       wissenschaft: mische(wissenschaft, 30),
       quellen: status
     };

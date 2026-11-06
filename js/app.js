@@ -106,6 +106,16 @@
         </div>
       </a>` : `<div class="inhalt"><p class="hinweis">Die Tagesschau ist gerade nicht erreichbar.</p></div>`;
 
+    // Ambient-Licht: das Top-Foto als weicher Schein hinter der ganzen Seite
+    if (haupt && haupt.bild) {
+      const amb = $("ambiente");
+      if (amb.dataset.bild !== haupt.bild) {
+        const vorlad = new Image();
+        vorlad.onload = () => { amb.style.backgroundImage = `url("${haupt.bild}")`; amb.dataset.bild = haupt.bild; amb.classList.add("an"); };
+        vorlad.src = haupt.bild;
+      }
+    }
+
     const wiss = ausgewogen(d.wissenschaft, 1);
     $("k-wiss").innerHTML = `<h2>Wissenschaft <small>${anzahlQuellen(d.wissenschaft)} Quellen</small></h2>` +
       (wiss.length ? `<div class="liste">${wiss.slice(0, 3).map(x => eintrag(x, true)).join("")}</div>` : leer(d));
@@ -123,7 +133,8 @@
     }
 
     // Weltraumbild hinter der Raumfahrt-Kachel
-    if (d.raumbild && d.raumbild.bild) zeigeRaumbild(d.raumbild);
+    const kandidaten = (d.raumbilder || (d.raumbild ? [d.raumbild] : [])).filter(b => b && b.bild);
+    waehleRaumbild(kandidaten);
 
     const ok = Object.values(d.quellen || {}).filter(v => v === "ok").length;
     const alle = Object.keys(d.quellen || {}).length;
@@ -147,7 +158,7 @@
     </a>`;
   const themaEintrag = t => `
     <a href="${e(t.link)}" target="_blank" rel="noopener">
-      <div class="quelle">${t.anzahl > 1 ? `<b class="medien">${t.anzahl} Medien</b>` : e(t.quelle)}<i>${e(TW.relZeit(t.zeit))}</i></div>
+      <div class="quelle">${t.anzahl > 1 ? `<b class="medien">${t.anzahl} Medien</b> <span class="punkte">${"●".repeat(Math.min(t.anzahl, 8))}</span>` : e(t.quelle)}<i>${e(TW.relZeit(t.zeit))}</i></div>
       <div class="titel">${e(t.titel)}</div>
     </a>`;
   const leer = d => d.ohneWorker
@@ -232,6 +243,14 @@
 
   /* ---------- Rechts: Raumfahrt (tagsüber) und Himmel (abends) ---------- */
   let startZeit = null, startDaten = null, ort = null, sonne = null, himmelGeladen = false;
+
+  function waehleRaumbild(liste, i = 0) {
+    if (i >= liste.length) return;
+    const test = new Image();
+    test.onload = () => (test.naturalWidth >= 1000 ? zeigeRaumbild(liste[i]) : waehleRaumbild(liste, i + 1));
+    test.onerror = () => waehleRaumbild(liste, i + 1);
+    test.src = liste[i].bild;
+  }
 
   function zeigeRaumbild(b) {
     const el = $("k-start");

@@ -248,3 +248,40 @@ ul.himmel { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 5
 ul.himmel li { display: grid; grid-template-columns: 74px 1fr; gap: 8px; align-items: baseline; }
 ul.himmel b { font-family: var(--serif); font-weight: 600; font-size: 1.12em; }
 ul.himmel span { color: var(--grau); font-size: .92em; }
+
+/* ===================== Feinschliff: Ruhe, Tiefe, Licht ===================== */
+
+/* Ambient-Licht: Top-Foto als weicher Schein hinter der Seite */
+.ambiente {
+  position: fixed; inset: -12%; z-index: 0; pointer-events: none;
+  background-size: cover; background-position: center;
+  filter: grayscale(1) blur(80px) brightness(.8) contrast(1.1);
+  opacity: 0; transition: opacity 1.6s ease;
+}
+.ambiente.an { opacity: .75; }
+/* dunkle Vignette, damit Text überall gut lesbar bleibt */
+.seite::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(110% 85% at 50% 35%, rgba(0,0,0,.05) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,.85) 100%);
+}
+
+/* Serifenschrift nur noch für drei Stellen: Top-Thema, Fakt-Überschriften, „Heute geboren“ */
+.liste .titel { font-family: var(--sans); font-weight: 600; font-size: 1.02em; line-height: 1.32; letter-spacing: -.005em; }
+.mond .phase { font-family: var(--sans); font-weight: 600; font-size: 1.12em; }
+ul.himmel b { font-family: var(--sans); font-size: 1em; }
+.start .mission { font-family: var(--sans); font-weight: 600; }
+
+/* Medien-Zahl ruhig statt weißer Pillen */
+.liste .quelle b.medien { background: none; color: #fff; padding: 0; font-size: 1em; font-weight: 600; }
+.liste .quelle .punkte { margin-left: 6px; font-size: .62em; letter-spacing: 2px; color: rgba(255,255,255,.38); vertical-align: 2px; }
+
+/* Unterrichtskarte so hoch wie ihr Inhalt, Weltraum bekommt den Rest */
+.unterricht { flex: 0 1 auto; }
+.fakt { flex: 0 0 auto; }
+.start.mit-bild { flex: 1 1 auto; min-height: 30%; }
+
+/* Glas wirkt erst mit Licht dahinter */
+.unterricht { background: linear-gradient(165deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.05) 50%, rgba(255,255,255,.03) 100%); -webkit-backdrop-filter: blur(30px) saturate(1.2); backdrop-filter: blur(30px) saturate(1.2); }
+.top { box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 50px 100px -40px rgba(0,0,0,.95); }
+
+@media (prefers-reduced-motion: reduce) { .ambiente { transition: none; } }
