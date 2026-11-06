@@ -3,7 +3,7 @@
 window.TW_CONFIG = {
   // Adresse deines Cloudflare-Workers (siehe worker/ANLEITUNG-WORKER.md).
   // Beispiel: "https://tageswissen.DEINNAME.workers.dev"
-  WORKER_URL: "",
+  WORKER_URL: "https://tageswissen.julianbickel.workers.dev",
 
   // Ort für Wetter, Sonnenauf- und -untergang.
   // Wird nur verwendet, wenn der Browser den Standort nicht freigibt.
