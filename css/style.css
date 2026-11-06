@@ -295,3 +295,30 @@ ul.himmel b { font-family: var(--sans); font-size: 1em; }
   .fakt + .fakt { margin-top: 12px; padding-top: 12px; }
   .unterricht > h2 { margin-bottom: 10px; }
 }
+
+
+/* ===================== Abend-Update: dunkler, Vorschau, Bildschirmschoner ===================== */
+
+/* Ambient-Licht dezenter – Schwarz bleibt der Grundton, auch bei hellen Fotos */
+.ambiente { filter: grayscale(1) blur(90px) brightness(.55) contrast(1.05); }
+.ambiente.an { opacity: .55; }
+.unterricht { background: linear-gradient(165deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.035) 50%, rgba(255,255,255,.02) 100%); }
+.unterricht, .start.mit-bild { background-color: rgba(10,10,10,.55); }
+
+/* Wettervorschau in der linken Spalte */
+.vorschau { margin-top: clamp(16px, 2.6vh, 30px); }
+.vorschau .kopf { color: var(--text); font-weight: 500; margin-bottom: 8px; }
+.verlauf-grafik { width: 100%; max-width: 300px; height: auto; overflow: visible; display: block; }
+.verlauf-grafik text { fill: var(--grau-tief); font: 9px var(--sans); }
+.verlauf-grafik text.t { fill: var(--grau); font-size: 9.5px; }
+.vorschau .morgen { color: var(--grau); font-size: .9em; margin-top: 8px; }
+@media (max-height: 760px) { .vorschau .verlauf-grafik { max-width: 240px; } .vorschau { margin-top: 12px; } }
+
+/* Bildschirmschoner-Modus (?schoner) */
+body.schoner { cursor: none; }
+body.schoner .ambiente { display: none; }
+body.schoner::before { opacity: .4; }
+body.schoner .unterricht, body.schoner .start.mit-bild { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(255,255,255,.04); }
+body.schoner .top img { filter: grayscale(1) contrast(1.05) brightness(.7); }
+body.schoner .raumbild img { filter: grayscale(1) brightness(.55); }
+body.schoner .seite { filter: brightness(.88); }

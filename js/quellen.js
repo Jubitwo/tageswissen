@@ -51,14 +51,19 @@ Q.ort = () => new Promise(res => {
 /* Wetter, Sonne, Tageslänge – Open-Meteo (frei, ohne Schlüssel) */
 Q.wetter = async ort => {
   const u = `https://api.open-meteo.com/v1/forecast?latitude=${ort.lat}&longitude=${ort.lon}` +
-    `&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,daylight_duration` +
-    `&timezone=auto&forecast_days=1`;
+    `&current=temperature_2m,weather_code` +
+    `&hourly=temperature_2m,precipitation_probability,weather_code&forecast_hours=13` +
+    `&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,daylight_duration,weather_code,precipitation_probability_max` +
+    `&timezone=auto&forecast_days=2`;
   const j = await TW.holeJSON(u);
+  const d = j.daily, h = j.hourly;
   return {
     temp: Math.round(j.current.temperature_2m), code: j.current.weather_code,
-    max: Math.round(j.daily.temperature_2m_max[0]), min: Math.round(j.daily.temperature_2m_min[0]),
-    auf: j.daily.sunrise[0].slice(11, 16), unter: j.daily.sunset[0].slice(11, 16),
-    tageslaenge: j.daily.daylight_duration[0]
+    max: Math.round(d.temperature_2m_max[0]), min: Math.round(d.temperature_2m_min[0]),
+    auf: d.sunrise[0].slice(11, 16), unter: d.sunset[0].slice(11, 16),
+    tageslaenge: d.daylight_duration[0],
+    stunden: h.time.map((t, i) => ({ uhr: t.slice(11, 13), temp: h.temperature_2m[i], regen: h.precipitation_probability[i] ?? 0, code: h.weather_code[i] })),
+    morgen: { min: Math.round(d.temperature_2m_min[1]), max: Math.round(d.temperature_2m_max[1]), code: d.weather_code[1], regen: d.precipitation_probability_max[1] ?? 0 }
   };
 };
 

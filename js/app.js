@@ -74,6 +74,31 @@
     }
   }
 
+  /* Wettervorschau: die nächsten 12 Stunden als kleine Grafik */
+  function zeichneVorschau(w) {
+    const st = (w.stunden || []).slice(0, 13);
+    if (!st.length) return;
+    const temps = st.map(x => x.temp), tMin = Math.min(...temps), tMax = Math.max(...temps), spanne = Math.max(4, tMax - tMin);
+    const B = 260, H = 64, schritt = B / (st.length - 1);
+    const y = t => 8 + (1 - (t - tMin) / spanne) * 30;
+    const linie = st.map((x, i) => `${i ? "L" : "M"}${(i * schritt).toFixed(1)},${y(x.temp).toFixed(1)}`).join(" ");
+    const balken = st.map((x, i) => {
+      const hoehe = Math.round(x.regen / 100 * 18);
+      return hoehe ? `<rect x="${(i * schritt - 3).toFixed(1)}" y="${H - 6 - hoehe}" width="6" height="${hoehe}" rx="2" fill="rgba(255,255,255,${0.25 + x.regen / 160})"/>` : "";
+    }).join("");
+    const marken = st.map((x, i) => i % 3 === 0 ? `<text x="${(i * schritt).toFixed(1)}" y="${H + 8}" text-anchor="middle">${+x.uhr}</text>
+      <text x="${(i * schritt).toFixed(1)}" y="${(y(x.temp) - 5).toFixed(1)}" text-anchor="middle" class="t">${Math.round(x.temp)}°</text>` : "").join("");
+    const nass = st.find(x => x.regen >= 50);
+    const satz = nass ? (nass === st[0] ? "Gerade wahrscheinlich Regen" : `Regen wahrscheinlich ab ${+nass.uhr} Uhr`) : "In den nächsten 12 Stunden trocken";
+    const m = w.morgen;
+    $("vorschau").innerHTML = `
+      <div class="kopf">${satz}</div>
+      <svg viewBox="-8 -6 ${B + 16} ${H + 18}" class="verlauf-grafik" aria-label="Temperatur und Regenwahrscheinlichkeit der nächsten 12 Stunden">
+        ${balken}<path d="${linie}" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>${marken}
+      </svg>
+      ${m ? `<div class="morgen">Morgen ${m.min}° bis ${m.max}°, ${e(TW.wetter(m.code))}${m.regen >= 40 ? ` (Regenrisiko ${m.regen} %)` : ""}</div>` : ""}`;
+  }
+
   /* ---------- Mitte: Nachrichten ---------- */
   function zeichneNachrichten(roh) {
     letzteDaten = roh;
@@ -351,11 +376,15 @@
         const w = await Q.wetter(o);
         sonne = w; ladeHimmel(); zeichneRaum();
         $("wetter").innerHTML = `${w.temp}°, ${e(TW.wetter(w.code))}<br><small>${o.name ? e(o.name) + ", " : ""}${w.min}° bis ${w.max}°</small>`;
+        zeichneVorschau(w);
         const tl = Math.round(w.tageslaenge / 60);
         $("sonne").innerHTML = `${w.auf} bis ${w.unter}<br><small>${Math.floor(tl / 60)} h ${tl % 60} min Tageslicht</small>`;
       } catch (_) {}
     });
   }
+
+  // Bildschirmschoner-Modus: Adresse mit ?schoner aufrufen – dunkler, ohne Lichteffekte, ohne Mauszeiger
+  if (new URLSearchParams(location.search).has("schoner")) document.body.classList.add("schoner");
 
   ladeAlles();
   setInterval(() => { datumUndUhr(); tickStart(); }, 1000);
