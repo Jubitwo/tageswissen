@@ -17,7 +17,8 @@ Persönliche Startseite für den Tag – schwarz-weiß, im Apple-Stil, optimiert
 | Heute vor … Jahren | Wikipedia (deutsch), bevorzugt Wissenschaft & Raumfahrt |
 | Wetter, Sonne, Tageslänge | Open-Meteo |
 | Schulferien & Feiertage | OpenHolidays API (Bundesland in `js/config.js`) |
-| Mondphase | wird auf der Seite selbst berechnet |
+| Mondphase | wird auf der Seite selbst berechnet (Kopfzeile) |
+| Für den Unterricht | kuratierte Mathe- und Physik-Fakten mit Unterrichtsidee, Klasse 5–10 (`js/unterricht.js`), jeden Schultag ein neuer |
 
 Die Seite aktualisiert die Nachrichten alle 5 Minuten und beim Zurückwechseln in den Tab.
 
@@ -29,6 +30,7 @@ css/style.css
 js/config.js       ← persönliche Einstellungen (Worker-Adresse, Ort, Bundesland)
 js/werkzeuge.js    ← Hilfsfunktionen (Zeit, Mond, Wetter-Codes)
 js/quellen.js      ← alle Live-Abrufe
+js/unterricht.js   ← Mathe- und Physik-Fakten für den Unterricht (zum Ergänzen)
 js/app.js          ← Aufbau der Seite
 worker/            ← Cloudflare Worker für Nachrichten + Anleitung
 ```

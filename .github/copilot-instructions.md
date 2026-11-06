@@ -8,6 +8,9 @@
 - Keine fest hinterlegten Fakten oder Nachrichten. Alle Inhalte kommen live aus den Quellen in `js/quellen.js`
   oder aus dem Worker (`worker/tageswissen-worker.js`). Fällt eine Quelle aus, zeigt nur diese Kachel einen
   kurzen Hinweis – der Rest der Seite läuft weiter.
+- Einzige Ausnahme: `js/unterricht.js` enthält bewusst kuratierte Mathe- und Physik-Fakten für den Unterricht
+  (Klasse 5–10, Bildungsplan BW). Neue Einträge im gleichen Format ergänzen, fachlich korrekt und mit Unterrichtsidee.
+- Bewusst schlicht halten: sechs Kacheln, kein Laufband. Neue Elemente nur, wenn dafür ein anderes wegfällt.
 - Persönliche Einstellungen gehören nur in `js/config.js`.
 - Texte auf der Seite sind deutsch; englische Überschriften aus internationalen Quellen bleiben im Original.
 - Jede Meldung verlinkt auf den Originalartikel und nennt die Quelle.
