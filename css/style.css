@@ -285,3 +285,13 @@ ul.himmel b { font-family: var(--sans); font-size: 1em; }
 .top { box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 50px 100px -40px rgba(0,0,0,.95); }
 
 @media (prefers-reduced-motion: reduce) { .ambiente { transition: none; } }
+
+/* Unterrichtskarte: nie abschneiden – Inhalt bestimmt die Höhe, Weltraum nimmt den Rest */
+.unterricht { flex: 0 0 auto; max-height: 68%; }
+.start.mit-bild { flex: 1 1 auto; min-height: 0; }
+@media (max-height: 900px) {
+  .fakt p { -webkit-line-clamp: 3; }
+  .fakt .idee { -webkit-line-clamp: 1; }
+  .fakt + .fakt { margin-top: 12px; padding-top: 12px; }
+  .unterricht > h2 { margin-bottom: 10px; }
+}
