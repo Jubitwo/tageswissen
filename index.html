@@ -12,36 +12,46 @@
 <body>
   <div class="seite">
 
-    <!-- Kopfzeile mit Tagesinformationen -->
-    <header class="kopf">
-      <div class="marke">
-        <b>Tageswissen</b>
-        <span id="datum">&nbsp;</span>
-      </div>
-      <div class="tagesinfo" id="tagesinfo"></div>
-      <div class="uhr">
-        <div class="zeit zahl" id="uhr">--:--</div>
-        <div class="stand" id="stand">Lädt …</div>
-      </div>
-    </header>
+    <!-- Linke Spalte: der Tag -->
+    <aside class="tag" aria-label="Der Tag">
+      <div class="uhr zahl" id="uhr">--:--</div>
+      <div class="datum" id="datum">&nbsp;</div>
 
-    <!-- Eilmeldung (nur sichtbar, wenn es eine gibt) -->
-    <a class="eil" id="eil" target="_blank" rel="noopener">
-      <span class="marker"><span class="punkt"></span>Eilmeldung</span>
-      <span class="titel" id="eil-titel"></span>
-      <span class="wann" id="eil-wann"></span>
-    </a>
+      <div class="mond" id="mond"></div>
 
-    <!-- Kacheln -->
-    <main class="raster">
-      <section class="kachel top" id="k-top"><div class="platzhalter" style="padding:24px"><i></i><i></i><i></i></div></section>
-      <section class="kachel news" id="k-news"><div class="label">Schlagzeilen</div><div class="platzhalter"><i></i><i></i><i></i></div></section>
-      <section class="kachel raum start" id="k-raum"><div class="label">Nächster Raketenstart</div><div class="platzhalter"><i></i><i></i></div></section>
-      <section class="kachel wiss" id="k-wiss"><div class="label">Wissenschaft</div><div class="platzhalter"><i></i><i></i><i></i></div></section>
-      <section class="kachel unt" id="k-unt"><div class="label">Für den Unterricht</div><div class="platzhalter"><i></i><i></i><i></i></div></section>
-      <section class="kachel heute" id="k-heute"><div class="label">Heute vor … Jahren</div><div class="platzhalter"><i></i><i></i></div></section>
+      <dl class="tagwerte">
+        <div><dt>Wetter</dt><dd id="wetter">–</dd></div>
+        <div><dt>Sonne</dt><dd id="sonne">–</dd></div>
+        <div><dt>Schule</dt><dd id="ferien">–</dd></div>
+      </dl>
+
+      <div class="heute" id="heute"></div>
+
+      <div class="stand" id="stand">Lädt …</div>
+    </aside>
+
+    <!-- Mitte: Nachrichten -->
+    <main class="mitte">
+      <a class="eil" id="eil" target="_blank" rel="noopener">
+        <span class="punkt"></span>
+        <span class="eil-wort">Eilmeldung</span>
+        <span class="titel" id="eil-titel"></span>
+        <span class="wann" id="eil-wann"></span>
+      </a>
+
+      <section class="top" id="k-top"><div class="platzhalter"><i></i><i></i></div></section>
+
+      <div class="spalten">
+        <section class="spalte" id="k-wiss"><h2>Wissenschaft</h2><div class="platzhalter"><i></i><i></i><i></i></div></section>
+        <section class="spalte" id="k-news"><h2>Nachrichten</h2><div class="platzhalter"><i></i><i></i><i></i></div></section>
+      </div>
     </main>
 
+    <!-- Rechts: Unterricht und Raumfahrt -->
+    <aside class="rechts">
+      <section class="unterricht" id="k-unt"><div class="platzhalter"><i></i><i></i><i></i></div></section>
+      <section class="start" id="k-start"><div class="platzhalter"><i></i><i></i></div></section>
+    </aside>
   </div>
 
   <script src="js/config.js"></script>

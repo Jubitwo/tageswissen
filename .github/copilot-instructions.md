@@ -10,7 +10,8 @@
   kurzen Hinweis – der Rest der Seite läuft weiter.
 - Einzige Ausnahme: `js/unterricht.js` enthält bewusst kuratierte Mathe- und Physik-Fakten für den Unterricht
   (Klasse 5–10, Bildungsplan BW). Neue Einträge im gleichen Format ergänzen, fachlich korrekt und mit Unterrichtsidee.
-- Bewusst schlicht halten: sechs Kacheln, kein Laufband. Neue Elemente nur, wenn dafür ein anderes wegfällt.
+- Aufbau bewusst schlicht: drei Spalten (links der Tag mit Uhr und Mond, Mitte Top-Thema + Wissenschaft + Nachrichten, rechts Unterricht + Raketenstart). Kein Laufband, keine Kachel-Flut. Neue Elemente nur, wenn dafür ein anderes wegfällt.
+- Schriften: Überschriften in der Serifenschrift (New York), alles andere in SF Pro. Beschriftungen in normaler Schreibweise, nicht in Großbuchstaben.
 - Persönliche Einstellungen gehören nur in `js/config.js`.
 - Texte auf der Seite sind deutsch; englische Überschriften aus internationalen Quellen bleiben im Original.
 - Jede Meldung verlinkt auf den Originalartikel und nennt die Quelle.
