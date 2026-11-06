@@ -29,14 +29,20 @@ const WISSENSCHAFT = [
   { name: "DLF Wissen",        url: "https://www.deutschlandfunk.de/wissen-106.rss" },
   { name: "Spektrum",          url: "https://www.spektrum.de/alias/rss/spektrum-de-rss-feed/996406" },
   { name: "SPIEGEL Wissen",    url: "https://www.spiegel.de/wissenschaft/index.rss" },
-  { name: "ZEIT Wissen",       url: "https://newsfeed.zeit.de/wissen/index" },
   { name: "Nature",            url: "https://www.nature.com/nature.rss" },
   { name: "ScienceDaily",      url: "https://www.sciencedaily.com/rss/top/science.xml" },
   { name: "phys.org",          url: "https://phys.org/rss-feed/" },
   { name: "NASA",              url: "https://www.nasa.gov/news-release/feed/" },
-  { name: "ESA",               url: "https://www.esa.int/rssfeed/Our_Activities/Space_Science" },
   { name: "BBC Science",       url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml" }
 ];
+
+/* Sport wird komplett ausgefiltert (Adresse und Stichwörter) */
+const SPORT_ADRESSE = /\/sport|\/fussball|\/football|sportschau|kicker\.de|\/bundesliga/i;
+const SPORT_WORT = /(bundesliga|fu(ß|ss)ball|eishockey|handball|basketball|volleyball|tennis|formel[ -]?1|champions[- ]league|europa league|conference league|\bdfb\b|\bdfl\b|\bfifa\b|\buefa\b|olympi|biathlon|skispring|ski alpin|leichtathletik|torwart|elfmeter|premier league|\bnba\b|\bnfl\b|\bnhl\b|wimbledon|tour de france|nationalmannschaft|bayern münchen|\bbvb\b|borussia|schalke|\bvfb\b|\bvfl\b|rb leipzig|werder|eintracht frankfurt|\b1\. fc\b|\bfc [a-zäöü]|grand slam|\bwm-|\bem-|-wm\b|-em\b|dfb-pokal|weltcup)/i;
+const istSport = i => SPORT_ADRESSE.test(i.link || "") || SPORT_WORT.test((i.titel || "") + " " + (i.dachzeile || ""));
+
+/* dpa-Kurzmeldungen der ZEIT (zeit.de/news/…) sind sehr kleinteilig – weglassen */
+const ZU_KLEINTEILIG = /zeit\.de\/news\//i;
 
 const TAGESSCHAU_API = "https://www.tagesschau.de/api2u/homepage/";
 
@@ -61,7 +67,7 @@ export default {
     const status = {};
     const [ts, nachrichten, wissenschaft] = await Promise.all([
       holeTagesschau(status),
-      holeGruppe(NACHRICHTEN, status, 6),
+      holeGruppe(NACHRICHTEN, status, 4),
       holeGruppe(WISSENSCHAFT, status, 4)
     ]);
 
@@ -103,7 +109,7 @@ async function hole(url) {
 async function holeTagesschau(status) {
   try {
     const j = await (await hole(TAGESSCHAU_API)).json();
-    const alle = [...(j.news || []), ...(j.regional || [])].filter(n => n && n.title);
+    const alle = [...(j.news || []), ...(j.regional || [])].filter(n => n && n.title && n.ressort !== "sport");
     const umwandeln = n => ({
       quelle: "tagesschau",
       titel: n.title,
@@ -114,7 +120,7 @@ async function holeTagesschau(status) {
       bild: bildVariante(n.teaserImage),
       eil: !!n.breakingNews
     });
-    const liste = alle.map(umwandeln);
+    const liste = alle.map(umwandeln).filter(n => !istSport(n));
     status.tagesschau = "ok";
     return { eil: liste.filter(n => n.eil), top: liste.slice(0, 8) };
   } catch (e) {
@@ -133,7 +139,10 @@ async function holeGruppe(quellen, status, jeQuelle) {
   const ergebnisse = await Promise.all(quellen.map(async q => {
     try {
       const text = await (await hole(q.url)).text();
-      const items = parseFeed(text).slice(0, jeQuelle).map(i => ({ ...i, quelle: q.name }));
+      const items = parseFeed(text)
+        .filter(i => !istSport(i) && !ZU_KLEINTEILIG.test(i.link))
+        .slice(0, jeQuelle)
+        .map(i => ({ ...i, quelle: q.name }));
       status[q.name] = items.length ? "ok" : "leer";
       return items;
     } catch (e) {

@@ -32,14 +32,15 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
 /* ---------- Grundgerüst ---------- */
 .seite {
   height: 100dvh;
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--abstand);
   padding: var(--abstand) calc(var(--abstand) * 1.4) 0;
 }
 
 /* ---------- Kopfzeile ---------- */
 .kopf {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -90,15 +91,16 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
 
 /* ---------- Bento-Raster ---------- */
 .raster {
+  flex: 1 1 auto;
   min-height: 0;
   display: grid;
   gap: var(--abstand);
-  grid-template-columns: 1.3fr 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr .9fr;
+  grid-template-columns: 1.3fr 1fr 1.05fr 1fr;
+  grid-template-rows: 1.15fr 1fr .85fr;
   grid-template-areas:
-    "top  top  news raum"
-    "top  top  news start"
-    "wiss wiss heute mond";
+    "top  top  wiss raum"
+    "top  top  wiss raum"
+    "news news heute mond";
 }
 .kachel {
   min-height: 0; min-width: 0;
@@ -112,8 +114,7 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
 }
 .kachel.top { grid-area: top; padding: 0; }
 .kachel.news { grid-area: news; }
-.kachel.raum { grid-area: raum; padding: 0; }
-.kachel.start { grid-area: start; }
+.kachel.raum { grid-area: raum; gap: clamp(12px, 1.8vh, 20px); }
 .kachel.wiss { grid-area: wiss; }
 .kachel.heute { grid-area: heute; }
 .kachel.mond { grid-area: mond; }
@@ -155,22 +156,19 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
 .liste .titel { font-weight: 600; letter-spacing: -.005em; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .liste .text { color: var(--grau); font-size: .93em; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 
-.wiss .liste { display: grid; grid-template-columns: 1fr 1fr; column-gap: clamp(18px, 2vw, 32px); align-content: start; }
-.wiss .liste a:nth-child(2) { border-top: 0; padding-top: 0; }
+.news .liste { display: grid; grid-template-columns: 1fr 1fr; column-gap: clamp(18px, 2vw, 32px); align-content: start; }
+.news .liste a:nth-child(2) { border-top: 0; padding-top: 0; }
+.wiss .liste .text { -webkit-line-clamp: 2; }
 
-/* ---------- Weltraumbild ---------- */
-.raum a { position: absolute; inset: 0; display: block; }
-.raum img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.raum .verlauf { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 55%, rgba(0,0,0,.85) 100%); }
-.raum .label { position: absolute; top: clamp(14px, 2vh, 22px); left: clamp(14px, 2vh, 22px); right: clamp(14px, 2vh, 22px); color: #fff; }
-.raum .unten { position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(14px, 2vh, 22px); }
-.raum .titel { font-weight: 700; font-size: 1.15em; letter-spacing: -.015em; }
-.raum .klein { color: #d2d2d7; font-size: .85em; }
+/* ---------- Weltraum ---------- */
+.raum-start { flex: 0 0 auto; display: flex; flex-direction: column; padding-bottom: clamp(12px, 1.8vh, 20px); border-bottom: 1px solid var(--linie); }
+.raum-news { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.label.hell { color: #d2d2d7; margin-bottom: 10px; }
 
 /* ---------- Raketenstart ---------- */
 .start .mission { font-size: clamp(16px, 2.1vh, 21px); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .start .meta { color: var(--grau); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.start .countdown { margin-top: auto; display: flex; gap: 14px; align-items: flex-end; }
+.start .countdown { margin-top: clamp(10px, 1.6vh, 18px); display: flex; gap: 14px; align-items: flex-end; }
 .start .countdown div { display: flex; flex-direction: column; }
 .start .countdown b { font-size: clamp(22px, 3.2vh, 34px); font-weight: 600; letter-spacing: -.03em; line-height: 1; }
 .start .countdown span { color: var(--grau-dunkel); font-size: .78em; margin-top: 4px; }
@@ -179,7 +177,7 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
 /* ---------- Heute vor … Jahren ---------- */
 .heute .jahre { font-size: clamp(38px, 6vh, 64px); font-weight: 700; letter-spacing: -.045em; line-height: .95; }
 .heute .jahre small { font-size: .32em; font-weight: 500; letter-spacing: 0; color: var(--grau); margin-left: 8px; }
-.heute p { margin: 10px 0 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.heute p { margin: 10px 0 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .heute .mehr { margin-top: auto; color: var(--grau-dunkel); font-size: .85em; padding-top: 8px; }
 
 /* ---------- Mond ---------- */
@@ -191,6 +189,7 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
 
 /* ---------- Laufband ---------- */
 .laufband {
+  flex: 0 0 auto;
   display: flex; align-items: center; gap: 16px;
   height: clamp(34px, 4.4vh, 44px);
   border-top: 1px solid var(--linie);
@@ -218,9 +217,9 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
 /* Kleinere Fenster: Raster vereinfachen (Scrollen erlaubt) */
 @media (max-width: 1080px), (max-height: 620px) {
   body { overflow: auto; }
-  .seite { height: auto; }
+  .seite { height: auto; display: block; } .seite > * { margin-bottom: var(--abstand); }
   .raster { grid-template-columns: 1fr 1fr; grid-template-rows: none; grid-auto-rows: minmax(220px, auto);
-    grid-template-areas: "top top" "news raum" "news start" "wiss wiss" "heute mond"; }
+    grid-template-areas: "top top" "wiss raum" "news news" "heute mond"; }
   .kachel.top { min-height: 420px; }
   .kopf { grid-template-columns: 1fr auto; }
   .tagesinfo { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
@@ -235,3 +234,6 @@ a:hover .titel, a:hover.titel { text-decoration: underline; text-decoration-thic
   .mond .tageslaenge { display: none; }
   .mond .phase { font-size: 16px; }
 }
+
+@media (max-height: 860px) { .heute p { -webkit-line-clamp: 2; } .heute .jahre { font-size: clamp(34px, 5.4vh, 56px); } }
+@media (max-height: 760px) { .heute .jahre { font-size: 38px; } .heute p { margin-top: 6px; } .kachel { padding: 13px 15px; } }

@@ -80,11 +80,15 @@ Q.ferien = async () => {
 /* Heute vor … Jahren – Wikipedia (deutsch) */
 Q.heute = async () => {
   const d = new Date();
-  const u = `https://api.wikimedia.org/feed/v1/wikipedia/de/onthisday/selected/${TW.zweistellig(d.getMonth() + 1)}/${TW.zweistellig(d.getDate())}`;
-  const j = await TW.holeJSON(u);
-  const liste = (j.selected || []).filter(e => e.text && e.year);
+  const basis = `https://api.wikimedia.org/feed/v1/wikipedia/de/onthisday`;
+  const tag = `${TW.zweistellig(d.getMonth() + 1)}/${TW.zweistellig(d.getDate())}`;
+  const [ausgewaehlt, ereignisse] = await Promise.all([
+    TW.holeJSON(`${basis}/selected/${tag}`).then(j => j.selected || []).catch(() => []),
+    TW.holeJSON(`${basis}/events/${tag}`).then(j => j.events || []).catch(() => [])
+  ]);
   const passt = e => C.WISSEN_STICHWORTE.some(w => e.text.toLowerCase().includes(w.toLowerCase()));
-  const wahl = liste.find(passt) || liste[0];
+  const alle = [...ausgewaehlt, ...ereignisse].filter(e => e.text && e.year);
+  const wahl = alle.find(passt) || ausgewaehlt[0] || alle[0];
   if (!wahl) throw new Error("leer");
   const seite = wahl.pages?.[0];
   return {
@@ -92,20 +96,6 @@ Q.heute = async () => {
     link: seite?.content_urls?.desktop?.page || `https://de.wikipedia.org/wiki/${d.getDate()}._${TW.MONATE[d.getMonth()]}`,
     wissen: passt(wahl)
   };
-};
-
-/* Weltraumbild des Tages – NASA APOD */
-Q.apod = async () => {
-  const gemerkt = merke.lies("apod-" + TW.isoTag(new Date()), 60 * 6);
-  if (gemerkt) return gemerkt;
-  const j = await TW.holeJSON(`https://api.nasa.gov/planetary/apod?api_key=${C.NASA_KEY}&thumbs=true`);
-  const d = {
-    titel: j.title, bild: j.media_type === "image" ? (j.url || j.hdurl) : (j.thumbnail_url || null),
-    link: `https://apod.nasa.gov/apod/ap${j.date.slice(2).replace(/-/g, "")}.html`,
-    datum: j.date, rechte: j.copyright ? j.copyright.trim() : "NASA"
-  };
-  merke.schreib("apod-" + TW.isoTag(new Date()), d);
-  return d;
 };
 
 /* Nächster Raketenstart – Launch Library 2 (The Space Devs) */
@@ -116,8 +106,11 @@ Q.start = async () => {
   const jetzt = Date.now() - 60 * 60000;
   const s = (j.results || []).find(r => Date.parse(r.net) > jetzt) || j.results?.[0];
   if (!s) throw new Error("leer");
+  const mission = s.mission?.name || "";
+  const unbekannt = !mission || /unknown|unbekannt|tbd/i.test(mission);
   const d = {
-    name: s.mission?.name || s.name,
+    name: unbekannt ? (s.rocket?.configuration?.name || (s.name || "").split("|")[0].trim()) : mission,
+    unbekannt,
     rakete: s.rocket?.configuration?.full_name || s.rocket?.configuration?.name || (s.name || "").split("|")[0].trim(),
     anbieter: s.launch_service_provider?.name || "",
     ort: s.pad?.location?.name || s.pad?.name || "",

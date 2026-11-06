@@ -10,10 +10,10 @@ Persönliche Startseite für den Tag – schwarz-weiß, im Apple-Stil, optimiert
 | Bereich | Quelle (live) |
 |---|---|
 | Eilmeldungen & Top-Thema | tagesschau.de (ARD) – über den Worker |
-| Schlagzeilen | ZDFheute, Deutschlandfunk, DW, SPIEGEL, ZEIT, FAZ, SZ, BBC, Guardian – über den Worker |
-| Wissenschaft | tagesschau Wissen, DLF Wissen, Spektrum, SPIEGEL Wissen, ZEIT Wissen, Nature, ScienceDaily, phys.org, NASA, ESA, BBC Science – über den Worker |
-| Bild des Tages | NASA Astronomy Picture of the Day |
-| Nächster Raketenstart | Launch Library 2 (The Space Devs) |
+| Schlagzeilen | ZDFheute, Deutschlandfunk, DW, SPIEGEL, ZEIT, FAZ, SZ, BBC, Guardian – über den Worker, **ohne Sport** |
+| Wissenschaft | tagesschau Wissen, DLF Wissen, Spektrum, SPIEGEL Wissen, Nature, ScienceDaily, phys.org, NASA, BBC Science – über den Worker |
+| Weltraum | nächster Raketenstart + Raumfahrt-Meldungen aus den Wissenschaftsquellen |
+| Raketenstarts | Launch Library 2 (The Space Devs) |
 | Heute vor … Jahren | Wikipedia (deutsch), bevorzugt Wissenschaft & Raumfahrt |
 | Wetter, Sonne, Tageslänge | Open-Meteo |
 | Schulferien & Feiertage | OpenHolidays API (Bundesland in `js/config.js`) |

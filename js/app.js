@@ -1,7 +1,16 @@
 /* Tageswissen – Aufbau der Seite */
 (() => {
   const C = window.TW_CONFIG, Q = window.TW_QUELLEN, $ = id => document.getElementById(id), e = TW.esc;
-  const info = {}; // Bausteine der Kopfzeile
+  const info = {};          // Bausteine der Kopfzeile
+  let letzteDaten = null;   // letzte Nachrichten (für Neuaufbau bei Größenänderung)
+
+  /* Sport wird auch hier ausgefiltert – falls der Worker noch eine ältere Version ist */
+  const SPORT_ADRESSE = /\/sport|\/fussball|\/football|sportschau|kicker\.de|\/bundesliga/i;
+  const SPORT_WORT = /(bundesliga|fu(ß|ss)ball|eishockey|handball|basketball|volleyball|tennis|formel[ -]?1|champions[- ]league|europa league|\bdfb\b|\bfifa\b|\buefa\b|olympi|biathlon|skispring|leichtathletik|torwart|elfmeter|premier league|\bnba\b|\bnfl\b|wimbledon|tour de france|nationalmannschaft|bayern münchen|\bbvb\b|borussia|schalke|\bvfb\b|rb leipzig|werder|\bfc [a-zäöü]|\bwm-|-wm\b|-em\b|weltcup)/i;
+  const keinSport = i => !(SPORT_ADRESSE.test(i.link || "") || SPORT_WORT.test((i.titel || "") + " " + (i.dachzeile || "")));
+
+  /* Raumfahrt-Meldungen für die Weltraum-Kachel */
+  const WELTRAUM = /(raumfahrt|raumsonde|rakete|astronaut|kosmonaut|\bnasa\b|\besa\b|\biss\b|mars|mond|venus|jupiter|saturn|asteroid|komet|teleskop|galaxie|schwarze[sn]? loch|exoplanet|\bspace|galax|planet|telescope|orbit|satellit|black hole|nebula|lunar|rocket)/i;
 
   /* ---------- Kopfzeile ---------- */
   function datumUndUhr() {
@@ -32,16 +41,25 @@
       const rest = Math.round((new Date(jetzt.bis) - new Date(heute)) / 864e5);
       return `<b>${e(jetzt.name)}</b> · noch ${rest} ${rest === 1 ? "Tag" : "Tage"}`;
     }
-    const naechste = f.schule.filter(x => x.von > heute).sort((a, b) => a.von.localeCompare(b.von))[0];
+    const naechste = f.schule.filter(x => x.von > heute && /ferien/i.test(x.name)).sort((a, b) => a.von.localeCompare(b.von))[0];
     if (!naechste) return "";
     const tage = Math.round((new Date(naechste.von) - new Date(heute)) / 864e5);
     return `Noch <b>${tage} Tage</b> bis ${e(naechste.name)}`;
   }
 
   /* ---------- Nachrichten ---------- */
-  function zeichneNachrichten(d) {
+  function zeichneNachrichten(roh) {
+    letzteDaten = roh;
+    const d = {
+      ...roh,
+      eilmeldungen: (roh.eilmeldungen || []).filter(keinSport),
+      top: (roh.top || []).filter(keinSport),
+      schlagzeilen: (roh.schlagzeilen || []).filter(keinSport),
+      wissenschaft: (roh.wissenschaft || []).filter(keinSport)
+    };
+
     // Eilmeldung
-    const eil = (d.eilmeldungen || [])[0];
+    const eil = d.eilmeldungen[0];
     const eilEl = $("eil");
     if (eil) {
       eilEl.classList.add("an");
@@ -51,7 +69,7 @@
     } else eilEl.classList.remove("an");
 
     // Top-Thema
-    const top = (d.top || []).filter(t => !t.eil);
+    const top = d.top.filter(t => !t.eil);
     const haupt = top.find(t => t.bild) || top[0];
     if (haupt) {
       const weitere = top.filter(t => t !== haupt).slice(0, 3);
@@ -60,7 +78,7 @@
           ${haupt.bild ? `<img class="sw" src="${e(haupt.bild)}" alt="">` : ""}
           <div class="verlauf"></div>
           <div class="inhalt">
-            <div class="label" style="color:#d2d2d7;margin-bottom:10px">Top-Thema <span class="rechts">tagesschau · ${e(TW.relZeit(haupt.zeit))}</span></div>
+            <div class="label hell">Top-Thema <span class="rechts">tagesschau · ${e(TW.relZeit(haupt.zeit))}</span></div>
             ${haupt.dachzeile ? `<div class="dach">${e(haupt.dachzeile)}</div>` : ""}
             <h1 class="titel">${e(haupt.titel)}</h1>
             <p class="anriss">${e(haupt.text)}</p>
@@ -75,36 +93,57 @@
       $("k-top").innerHTML = `<div style="padding:24px" class="hinweis">Die Tagesschau ist gerade nicht erreichbar.</div>`;
     }
 
-    // Schlagzeilen
-    const schlag = (d.schlagzeilen || []);
-    if (schlag.length) {
-      $("k-news").innerHTML = `<div class="label">Schlagzeilen <span class="rechts">${anzahlQuellen(schlag)} Quellen</span></div>
-        <div class="liste">${schlag.slice(0, 14).map(eintrag).join("")}</div>`;
-    } else {
-      $("k-news").innerHTML = `<div class="label">Schlagzeilen</div>${d.ohneWorker ? hinweisWorker() : `<p class="hinweis">Gerade keine Meldungen erreichbar.</p>`}`;
-    }
+    // Weltraum-Meldungen aus der Wissenschaft herausziehen
+    const raumMeldungen = d.wissenschaft.filter(x => x.quelle === "NASA" || WELTRAUM.test(x.titel)).slice(0, 3);
+    const wiss = d.wissenschaft.filter(x => !raumMeldungen.includes(x));
+    zeichneWeltraumMeldungen(raumMeldungen);
 
-    // Wissenschaft
-    const wiss = (d.wissenschaft || []);
+    // Wissenschaft (Schwerpunkt der Seite)
     if (wiss.length) {
-      $("k-wiss").innerHTML = `<div class="label">Wissenschaft <span class="rechts">${anzahlQuellen(wiss)} Quellen · deutsch & englisch</span></div>
-        <div class="liste">${wiss.slice(0, 10).map(x => eintrag(x, true)).join("")}</div>`;
+      $("k-wiss").innerHTML = `<div class="label">Wissenschaft <span class="rechts">${anzahlQuellen(wiss)} Quellen</span></div>
+        <div class="liste">${ausgewogen(wiss, 2).slice(0, 12).map(x => eintrag(x, true)).join("")}</div>`;
     } else {
       $("k-wiss").innerHTML = `<div class="label">Wissenschaft</div>${d.ohneWorker ? hinweisWorker() : `<p class="hinweis">Gerade keine Meldungen erreichbar.</p>`}`;
     }
 
-    // Laufband
-    const band = [...(d.top || []), ...schlag].slice(0, 24);
-    if (band.length) {
-      const html = band.map(b => `<a href="${e(b.link)}" target="_blank" rel="noopener"><b>${e(b.quelle)}</b>${e(b.titel)}</a>`).join("");
-      const el = $("band");
-      el.innerHTML = html + html;
-      el.style.animationDuration = Math.max(60, band.length * 9) + "s";
+    // Schlagzeilen – ausgewogen: höchstens 2 je Quelle nacheinander
+    const schlag = ausgewogen(d.schlagzeilen, 2);
+    if (schlag.length) {
+      $("k-news").innerHTML = `<div class="label">Schlagzeilen <span class="rechts">${anzahlQuellen(schlag)} Quellen · ohne Sport</span></div>
+        <div class="liste">${schlag.slice(0, 12).map(x => eintrag(x)).join("")}</div>`;
+    } else {
+      $("k-news").innerHTML = `<div class="label">Schlagzeilen</div>${d.ohneWorker ? hinweisWorker() : `<p class="hinweis">Gerade keine Meldungen erreichbar.</p>`}`;
     }
 
     const ok = Object.values(d.quellen || {}).filter(v => v === "ok").length;
-    $("stand").textContent = `Stand ${TW.uhrzeit(new Date(d.erstellt || Date.now()))}` + (ok ? ` · ${ok} Quellen live` : "");
+    const alle = Object.keys(d.quellen || {}).length;
+    $("stand").textContent = `Stand ${TW.uhrzeit(new Date(d.erstellt || Date.now()))}` + (alle ? ` · ${ok}/${alle} Quellen` : "");
+    $("stand").title = Object.entries(d.quellen || {}).map(([k, v]) => `${k}: ${v}`).join("\n");
+
     passeAn();
+    zeichneLaufband(d, schlag);
+  }
+
+  /* Nicht mehr als n Meldungen pro Quelle vorne, der Rest danach */
+  function ausgewogen(liste, n) {
+    const zaehler = {}, vorne = [], hinten = [];
+    for (const x of liste) ((zaehler[x.quelle] = (zaehler[x.quelle] || 0) + 1) <= n ? vorne : hinten).push(x);
+    return [...vorne, ...hinten];
+  }
+
+  /* Laufband: nur Meldungen, die oben nicht schon zu sehen sind */
+  function zeichneLaufband(d, schlag) {
+    const sichtbar = new Set([...document.querySelectorAll(".kachel a")]
+      .filter(a => a.style.display !== "none").map(a => a.href));
+    const rest = [...schlag, ...d.top].filter(x => x.link && !sichtbar.has(new URL(x.link, location.href).href));
+    const eindeutig = [...new Map(rest.map(x => [x.link, x])).values()].slice(0, 20);
+    const fuss = document.querySelector(".laufband");
+    if (!eindeutig.length) { fuss.style.visibility = "hidden"; return; }
+    fuss.style.visibility = "";
+    const html = eindeutig.map(b => `<a href="${e(b.link)}" target="_blank" rel="noopener"><b>${e(b.quelle)}</b>${e(b.titel)}</a>`).join("");
+    const el = $("band");
+    el.innerHTML = html + html;
+    el.style.animationDuration = Math.max(70, eindeutig.length * 10) + "s";
   }
 
   const anzahlQuellen = l => new Set(l.map(x => x.quelle)).size;
@@ -116,30 +155,17 @@
     </a>`;
   const hinweisWorker = () => `<p class="hinweis"><b>Nachrichtendienst noch nicht verbunden.</b><br>Trage die Worker-Adresse in <code>js/config.js</code> ein – siehe <code>worker/ANLEITUNG-WORKER.md</code>.</p>`;
 
-  function passeAn() {
-    document.querySelectorAll(".liste").forEach(TW.passend);
-  }
+  function passeAn() { document.querySelectorAll(".liste").forEach(TW.passend); }
 
-  /* ---------- Weltraum ---------- */
-  function zeichneApod(a) {
-    $("k-raum").innerHTML = `
-      <a href="${e(a.link)}" target="_blank" rel="noopener">
-        ${a.bild ? `<img class="sw" src="${e(a.bild)}" alt="">` : ""}
-        <div class="verlauf"></div>
-        <div class="label">NASA · Bild des Tages</div>
-        <div class="unten"><div class="titel">${e(a.titel)}</div><div class="klein">© ${e(a.rechte)}</div></div>
-      </a>`;
-  }
-
-  let startZeit = null, startStatus = "";
+  /* ---------- Weltraum: Raketenstart + Raumfahrt-Meldungen ---------- */
+  let startZeit = null;
   function zeichneStart(s) {
-    startZeit = Date.parse(s.zeit); startStatus = s.status;
-    $("k-start").innerHTML = `
-      <div class="label">Nächster Raketenstart <span class="rechts">${e(new Date(s.zeit).toLocaleString("de-DE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }))}</span></div>
+    startZeit = Date.parse(s.zeit);
+    $("raum-start").innerHTML = `
+      <div class="label">Nächster Raketenstart <span class="rechts">${e(new Date(s.zeit).toLocaleString("de-DE", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }))}</span></div>
       <a class="mission titel" href="${e(s.link)}" target="_blank" rel="noopener">${e(s.name)}</a>
-      <div class="meta">${e(s.rakete)}${s.anbieter ? " · " + e(s.anbieter) : ""}<br>${e(s.ort)}</div>
-      <div class="countdown zahl" id="countdown"></div>
-      <div class="status">${e(s.status)}</div>`;
+      <div class="meta">${s.unbekannt ? "Nutzlast nicht veröffentlicht" : e(s.rakete)} · ${e(s.anbieter)}<br>${e(s.ort)}</div>
+      <div class="countdown zahl" id="countdown"></div>`;
     tickStart();
   }
   function tickStart() {
@@ -149,8 +175,13 @@
     const t = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sek = s % 60;
     const z = TW.zweistellig;
     el.innerHTML = `<div><b>${vorbei ? "T+" : "T−"}</b><span>&nbsp;</span></div>` +
-      (t ? `<div><b>${t}</b><span>Tage</span></div>` : "") +
+      (t ? `<div><b>${t}</b><span>${t === 1 ? "Tag" : "Tage"}</span></div>` : "") +
       `<div><b>${z(h)}</b><span>Std.</span></div><div><b>${z(m)}</b><span>Min.</span></div><div><b>${z(sek)}</b><span>Sek.</span></div>`;
+  }
+  function zeichneWeltraumMeldungen(liste) {
+    $("raum-news").innerHTML = liste.length
+      ? `<div class="label">Aus der Raumfahrt</div><div class="liste">${liste.map(x => eintrag(x)).join("")}</div>`
+      : "";
   }
 
   /* ---------- Heute vor … Jahren ---------- */
@@ -180,7 +211,6 @@
           </div></div></div>`;
   }
 
-  /* ---------- Fehlerkacheln ---------- */
   const fehler = (id, label, text) => { $(id).innerHTML = `<div class="label">${label}</div><p class="hinweis">${text}</p>`; };
 
   /* ---------- Laden ---------- */
@@ -192,11 +222,10 @@
     }
   }
 
-  async function ladeAlles() {
+  function ladeAlles() {
     datumUndUhr(); zeichneTagesinfo(); zeichneMond();
     ladeNachrichten();
-    Q.apod().then(zeichneApod).catch(() => fehler("k-raum", "NASA · Bild des Tages", "Heute nicht erreichbar."));
-    Q.start().then(zeichneStart).catch(() => fehler("k-start", "Nächster Raketenstart", "Startkalender gerade nicht erreichbar."));
+    Q.start().then(zeichneStart).catch(() => fehler("raum-start", "Nächster Raketenstart", "Startkalender gerade nicht erreichbar."));
     Q.heute().then(zeichneHeute).catch(() => fehler("k-heute", "Heute vor … Jahren", "Wikipedia gerade nicht erreichbar."));
     Q.ferien().then(f => { info.ferien = ferienText(f); zeichneTagesinfo(); }).catch(() => {});
     Q.ort().then(async ort => {
@@ -210,9 +239,9 @@
   setInterval(() => { datumUndUhr(); tickStart(); }, 1000);
   setInterval(ladeNachrichten, C.AKTUALISIEREN_MINUTEN * 60000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) ladeNachrichten(); });
-  addEventListener("resize", passeAn);
+  let warte; addEventListener("resize", () => { clearTimeout(warte); warte = setTimeout(() => letzteDaten && zeichneNachrichten(letzteDaten), 200); });
 
-  // Um Mitternacht alles neu laden (neuer Tag, neue Inhalte)
+  // Um Mitternacht neu laden (neuer Tag, neue Inhalte)
   const mitternacht = new Date(); mitternacht.setHours(24, 0, 30, 0);
   setTimeout(() => location.reload(), mitternacht - Date.now());
 })();
