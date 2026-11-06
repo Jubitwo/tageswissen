@@ -1,0 +1,7 @@
+.DS_Store
+# Mac-Automatik (nur lokal)
+.zuletzt-geoeffnet
+*.plist
+*.plist.aus
+*.command
+tageswissen-oeffnen.sh

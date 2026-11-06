@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <title>Tageswissen</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23000'/%3E%3Cpath d='M16 3a13 13 0 0 1 0 26z' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="seite">
+
+    <!-- Kopfzeile mit Tagesinformationen -->
+    <header class="kopf">
+      <div class="marke">
+        <b>Tageswissen</b>
+        <span id="datum">&nbsp;</span>
+      </div>
+      <div class="tagesinfo" id="tagesinfo"></div>
+      <div class="uhr">
+        <div class="zeit zahl" id="uhr">--:--</div>
+        <div class="stand" id="stand">Lädt …</div>
+      </div>
+    </header>
+
+    <!-- Eilmeldung (nur sichtbar, wenn es eine gibt) -->
+    <a class="eil" id="eil" target="_blank" rel="noopener">
+      <span class="marker"><span class="punkt"></span>Eilmeldung</span>
+      <span class="titel" id="eil-titel"></span>
+      <span class="wann" id="eil-wann"></span>
+    </a>
+
+    <!-- Kacheln -->
+    <main class="raster">
+      <section class="kachel top" id="k-top"><div class="kachel-innen platzhalter" style="padding:24px"><i></i><i></i><i></i></div></section>
+      <section class="kachel news" id="k-news"><div class="label">Schlagzeilen</div><div class="platzhalter"><i></i><i></i><i></i></div></section>
+      <section class="kachel raum" id="k-raum"><div class="platzhalter" style="padding:20px"><i></i><i></i></div></section>
+      <section class="kachel start" id="k-start"><div class="label">Nächster Raketenstart</div><div class="platzhalter"><i></i><i></i></div></section>
+      <section class="kachel wiss" id="k-wiss"><div class="label">Wissenschaft</div><div class="platzhalter"><i></i><i></i><i></i></div></section>
+      <section class="kachel heute" id="k-heute"><div class="label">Heute vor … Jahren</div><div class="platzhalter"><i></i><i></i></div></section>
+      <section class="kachel mond" id="k-mond"><div class="label">Mond</div><div class="platzhalter"><i></i><i></i></div></section>
+    </main>
+
+    <!-- Laufband -->
+    <footer class="laufband">
+      <span class="etikett">Aktuell</span>
+      <div class="spur"><div class="band" id="band"></div></div>
+    </footer>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/werkzeuge.js"></script>
+  <script src="js/quellen.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
