@@ -10,15 +10,15 @@ Persönliche Startseite für den Tag – schwarz-weiß, im Apple-Stil, optimiert
 | Bereich | Quelle (live) |
 |---|---|
 | Eilmeldungen & Top-Thema | tagesschau.de (ARD) – über den Worker |
-| Schlagzeilen | ZDFheute, Deutschlandfunk, DW, SPIEGEL, ZEIT, FAZ, SZ, BBC, Guardian – über den Worker, **ohne Sport** |
+| Die großen Themen | ZDFheute, Deutschlandfunk, DW, SPIEGEL, ZEIT, FAZ, SZ, BBC, Guardian – der Worker erkennt, worüber viele Medien gleichzeitig berichten, **ohne Sport** |
 | Wissenschaft | tagesschau Wissen, DLF Wissen, Spektrum, SPIEGEL Wissen, Nature, ScienceDaily, phys.org, NASA, BBC Science – über den Worker |
-| Weltraum | nächster Raketenstart + Raumfahrt-Meldungen aus den Wissenschaftsquellen |
+| Weltraum | NASA Astronomy Picture of the Day / Image of the Day als Hintergrund; tagsüber der nächste spannende Raketenstart, abends „Heute am Himmel“ (sichtbare Planeten, berechnet mit Astronomy Engine) |
 | Raketenstarts | Launch Library 2 (The Space Devs) |
-| Heute vor … Jahren | Wikipedia (deutsch), bevorzugt Wissenschaft & Raumfahrt |
+| Heute geboren | Wikipedia (deutsch): Forscherinnen und Forscher mit Geburtstag, sonst Jahrestag aus Wissenschaft & Raumfahrt |
 | Wetter, Sonne, Tageslänge | Open-Meteo |
 | Schulferien & Feiertage | OpenHolidays API (Bundesland in `js/config.js`) |
 | Mondphase | wird auf der Seite selbst berechnet (Kopfzeile) |
-| Für den Unterricht | kuratierte Mathe- und Physik-Fakten mit Unterrichtsidee, Klasse 5–10 (`js/unterricht.js`), jeden Schultag ein neuer |
+| Für den Unterricht | kuratierte Chemie-, Mathe- und Physik-Fakten mit Unterrichtsidee (`js/unterricht.js`): täglich Chemie plus abwechselnd Mathe oder Physik; Klick auf die Überschrift öffnet den Beamer-Modus (Pfeiltasten blättern, Esc schließt) |
 
 Die Seite aktualisiert die Nachrichten alle 5 Minuten und beim Zurückwechseln in den Tab.
 

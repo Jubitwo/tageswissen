@@ -61,10 +61,17 @@
 
   function zeichneHeute(h) {
     const jahre = new Date().getFullYear() - h.jahr;
-    $("heute").innerHTML = `<a href="${e(h.link)}" target="_blank" rel="noopener">
-      <div class="kopf">Heute vor</div>
-      <div class="jahre zahl">${jahre}<small>Jahren, ${h.jahr}</small></div>
-      <p class="titel">${e(h.text)}</p></a>`;
+    if (h.art === "geboren" || h.art === "gestorben") {
+      $("heute").innerHTML = `<a href="${e(h.link)}" target="_blank" rel="noopener">
+        <div class="kopf">Heute vor ${jahre} Jahren ${h.art}</div>
+        <div class="person titel">${e(h.name)}</div>
+        <p>${e(h.text)}</p></a>`;
+    } else {
+      $("heute").innerHTML = `<a href="${e(h.link)}" target="_blank" rel="noopener">
+        <div class="kopf">Heute vor</div>
+        <div class="jahre zahl">${jahre}<small>Jahren, ${h.jahr}</small></div>
+        <p class="titel">${e(h.text)}</p></a>`;
+    }
   }
 
   /* ---------- Mitte: Nachrichten ---------- */
@@ -103,10 +110,20 @@
     $("k-wiss").innerHTML = `<h2>Wissenschaft <small>${anzahlQuellen(d.wissenschaft)} Quellen</small></h2>` +
       (wiss.length ? `<div class="liste">${wiss.slice(0, 3).map(x => eintrag(x, true)).join("")}</div>` : leer(d));
 
-    // Weitere Nachrichten: ohne Doppelung zum Top-Thema, höchstens eine je Quelle vorne
-    const schlag = ausgewogen(d.schlagzeilen, 1);
-    $("k-news").innerHTML = `<h2>Nachrichten <small>ohne Sport</small></h2>` +
-      (schlag.length ? `<div class="liste">${schlag.slice(0, 4).map(x => eintrag(x)).join("")}</div>` : leer(d));
+    // Die wichtigsten Themen: worüber berichten gerade viele Medien? (ohne das Top-Thema selbst)
+    const gleich = (a, b) => a && b && (a.link === b.link || a.titel === b.titel);
+    const themen = (d.themen || []).filter(keinSport).filter(t => !gleich(t, haupt));
+    if (themen.length) {
+      $("k-news").innerHTML = `<h2>Die großen Themen <small>nach Zahl der Medien</small></h2>
+        <div class="liste">${themen.slice(0, 4).map(themaEintrag).join("")}</div>`;
+    } else {
+      const schlag = ausgewogen(d.schlagzeilen, 1);
+      $("k-news").innerHTML = `<h2>Nachrichten <small>ohne Sport</small></h2>` +
+        (schlag.length ? `<div class="liste">${schlag.slice(0, 4).map(x => eintrag(x)).join("")}</div>` : leer(d));
+    }
+
+    // Weltraumbild hinter der Raumfahrt-Kachel
+    if (d.raumbild && d.raumbild.bild) zeigeRaumbild(d.raumbild);
 
     const ok = Object.values(d.quellen || {}).filter(v => v === "ok").length;
     const alle = Object.keys(d.quellen || {}).length;
@@ -128,56 +145,162 @@
       <div class="titel">${e(x.titel)}</div>
       ${mitText && x.text ? `<div class="text">${e(x.text)}</div>` : ""}
     </a>`;
+  const themaEintrag = t => `
+    <a href="${e(t.link)}" target="_blank" rel="noopener">
+      <div class="quelle">${t.anzahl > 1 ? `<b class="medien">${t.anzahl} Medien</b>` : e(t.quelle)}<i>${e(TW.relZeit(t.zeit))}</i></div>
+      <div class="titel">${e(t.titel)}</div>
+    </a>`;
   const leer = d => d.ohneWorker
     ? `<p class="hinweis"><b>Nachrichtendienst nicht verbunden.</b> Worker-Adresse in js/config.js eintragen.</p>`
     : `<p class="hinweis">Gerade keine Meldungen erreichbar.</p>`;
 
   /* ---------- Rechts: Für den Unterricht ---------- */
+  const FAECHER = { MATHE: "Mathematik", PHYSIK: "Physik", CHEMIE: "Chemie" };
   function schultagNr() {
     const start = new Date(window.TW_UNTERRICHT.START + "T12:00:00"), heute = new Date(); heute.setHours(12, 0, 0, 0);
     let n = 0;
     for (let d = new Date(start); d <= heute; d.setDate(d.getDate() + 1)) { const w = d.getDay(); if (w !== 0 && w !== 6) n++; }
     return Math.max(0, n - 1); // am Wochenende bleibt der Freitag stehen
   }
-  const verschiebung = { MATHE: 0, PHYSIK: 0 };
-  function waehleFakt(fach) {
+  const verschiebung = { MATHE: 0, PHYSIK: 0, CHEMIE: 0 };
+  function faktIndex(fach) {
     const liste = window.TW_UNTERRICHT[fach];
     const i = schultagNr() + verschiebung[fach];
-    return liste[((i * 37) % liste.length + liste.length) % liste.length]; // Klassenstufen gemischt
+    return ((i * 37) % liste.length + liste.length) % liste.length; // Klassenstufen gemischt
   }
-  function faktHTML(fach, name) {
-    const x = waehleFakt(fach);
+  const waehleFakt = fach => window.TW_UNTERRICHT[fach][faktIndex(fach)];
+  // Chemie jeden Tag, dazu abwechselnd Mathematik und Physik
+  const heutigeFaecher = () => ["CHEMIE", schultagNr() % 2 === 0 ? "MATHE" : "PHYSIK"];
+
+  function faktHTML(fach) {
+    const x = waehleFakt(fach), name = FAECHER[fach];
     return `<div class="fakt">
       <div class="fach"><b>${name}</b><span>Klasse ${e(x.k)}, ${e(x.th)}</span>
         <button class="weiter" data-fach="${fach}" aria-label="Anderen ${name}-Fakt zeigen">Anderer Fakt</button></div>
-      <h3>${e(x.t)}</h3>
+      <button class="fakt-gross" data-fach="${fach}" title="Im Beamer-Modus zeigen"><h3>${e(x.t)}</h3></button>
       <p>${e(x.f)}</p>
       <div class="idee">${e(x.u)}</div>
     </div>`;
   }
   function zeichneUnterricht() {
     if (!window.TW_UNTERRICHT) return;
-    $("k-unt").innerHTML = `<div class="zeichen" aria-hidden="true">π</div>
-      <h2>Für den Unterricht<small>Mathe und Physik, Klasse 5 bis 10</small></h2>
-      ${faktHTML("MATHE", "Mathematik")}${faktHTML("PHYSIK", "Physik")}`;
+    const [a, b] = heutigeFaecher();
+    $("k-unt").innerHTML = `<div class="zeichen" aria-hidden="true">${b === "MATHE" ? "π" : "λ"}</div>
+      <h2>Für den Unterricht<small>Überschrift anklicken: Beamer-Modus</small></h2>
+      ${faktHTML(a)}${faktHTML(b)}`;
   }
-  document.addEventListener("click", ev => {
-    const b = ev.target.closest(".weiter"); if (!b) return;
-    verschiebung[b.dataset.fach]++; zeichneUnterricht();
-  });
 
-  /* ---------- Rechts: Raketenstart ---------- */
-  let startZeit = null;
-  function zeichneStart(s) {
-    startZeit = Date.parse(s.zeit);
+  /* Beamer-Modus: ein Fakt bildschirmfüllend, mit Pfeiltasten blättern */
+  let beamerFach = null;
+  function zeigeBeamer(fach) {
+    beamerFach = fach;
+    const x = waehleFakt(fach);
+    let el = $("beamer");
+    if (!el) {
+      el = document.createElement("div"); el.id = "beamer"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `
+      <div class="beamer-kopf"><span><b>${FAECHER[fach]}</b> Klasse ${e(x.k)}, ${e(x.th)}</span>
+        <span class="beamer-knoepfe"><button data-b="zurueck" aria-label="Vorheriger Fakt">←</button><button data-b="vor" aria-label="Nächster Fakt">→</button><button data-b="zu" aria-label="Schließen">Schließen</button></span></div>
+      <h1>${e(x.t)}</h1>
+      <p>${e(x.f)}</p>
+      <div class="beamer-idee">${e(x.u)}</div>`;
+    el.classList.add("an");
+    if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  }
+  function schliesseBeamer() {
+    const el = $("beamer"); if (el) el.classList.remove("an");
+    beamerFach = null;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+  function blaettern(schritt) { if (!beamerFach) return; verschiebung[beamerFach] += schritt; zeigeBeamer(beamerFach); zeichneUnterricht(); }
+
+  document.addEventListener("click", ev => {
+    const w = ev.target.closest(".weiter"); if (w) { verschiebung[w.dataset.fach]++; zeichneUnterricht(); return; }
+    const g = ev.target.closest(".fakt-gross"); if (g) { zeigeBeamer(g.dataset.fach); return; }
+    const b = ev.target.closest("[data-b]");
+    if (b) { if (b.dataset.b === "zu") schliesseBeamer(); else blaettern(b.dataset.b === "vor" ? 1 : -1); }
+  });
+  document.addEventListener("keydown", ev => {
+    if (!beamerFach) return;
+    if (ev.key === "Escape") schliesseBeamer();
+    if (ev.key === "ArrowRight" || ev.key === " ") { ev.preventDefault(); blaettern(1); }
+    if (ev.key === "ArrowLeft") blaettern(-1);
+  });
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && beamerFach) { const el = $("beamer"); if (el) el.classList.remove("an"); beamerFach = null; } });
+
+  /* ---------- Rechts: Raumfahrt (tagsüber) und Himmel (abends) ---------- */
+  let startZeit = null, startDaten = null, ort = null, sonne = null, himmelGeladen = false;
+
+  function zeigeRaumbild(b) {
+    const el = $("k-start");
+    el.classList.add("mit-bild");
+    let bild = el.querySelector(".raumbild");
+    if (!bild) { bild = document.createElement("a"); bild.className = "raumbild"; bild.target = "_blank"; bild.rel = "noopener"; el.prepend(bild); }
+    bild.href = b.link; bild.title = b.titel;
+    bild.innerHTML = `<img src="${e(b.bild)}" alt=""><span class="bildtitel">${e(b.quelle)}: ${e(b.titel)}</span>`;
+  }
+
+  function istAbend() {
+    if (!sonne) return false;
+    const jetzt = new Date(), heute = TW.isoTag(jetzt);
+    const unter = new Date(`${heute}T${sonne.unter}:00`);
+    return jetzt >= unter || jetzt.getHours() < 5;
+  }
+
+  function startHTML(s, kurz) {
     const wann = new Date(s.zeit).toLocaleString("de-DE", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-    $("k-start").innerHTML = `
-      <h2>Nächster Raketenstart <small>${e(wann)} Uhr</small></h2>
-      <a href="${e(s.link)}" target="_blank" rel="noopener"><div class="mission titel">${e(s.name)}</div></a>
+    if (kurz) return `<div class="start-kurz">Nächster Raketenstart: <a href="${e(s.link)}" target="_blank" rel="noopener">${e(s.name)}</a>, ${e(wann)} Uhr</div>`;
+    return `<h2>Nächster Raketenstart <small>${e(wann)} Uhr</small></h2>
+      <a href="${e(s.link)}" target="_blank" rel="noopener"><div class="mission titel">${s.crew ? "Mit Crew: " : ""}${e(s.name)}</div></a>
       <div class="meta">${s.unbekannt ? "Nutzlast nicht veröffentlicht" : e(s.rakete)}, ${e(s.anbieter)}, ${e(s.ort)}</div>
       <div class="countdown zahl" id="countdown"></div>`;
+  }
+
+  /* Welche Planeten sind heute Abend zu sehen? (Astronomy Engine) */
+  const PLANETEN = { Mercury: "Merkur", Venus: "Venus", Mars: "Mars", Jupiter: "Jupiter", Saturn: "Saturn" };
+  const RICHTUNG = ["Norden", "Nordosten", "Osten", "Südosten", "Süden", "Südwesten", "Westen", "Nordwesten"];
+  function himmelHTML() {
+    const A = window.Astronomy;
+    if (!A || !ort) return null;
+    const beobachter = new A.Observer(ort.lat, ort.lon, 300);
+    // Zeitpunkt: jetzt, aber frühestens eine Stunde nach Sonnenuntergang (dann ist es dunkel genug)
+    let zeit = new Date();
+    if (sonne) { const dunkel = new Date(`${TW.isoTag(zeit)}T${sonne.unter}:00`); dunkel.setMinutes(dunkel.getMinutes() + 60); if (zeit < dunkel && zeit.getHours() >= 5) zeit = dunkel; }
+    const lage = (koerper) => { const eq = A.Equator(koerper, zeit, beobachter, true, true); return A.Horizon(zeit, beobachter, eq.ra, eq.dec, "normal"); };
+    const sichtbar = Object.keys(PLANETEN).map(p => {
+      const h = lage(p), hell = A.Illumination(p, zeit).mag;
+      return { name: PLANETEN[p], hoehe: h.altitude, richtung: RICHTUNG[Math.round(h.azimuth / 45) % 8], hell };
+    }).filter(p => p.hoehe > 8).sort((a, b) => a.hell - b.hell);
+    const uhr = TW.uhrzeit(zeit);
+    const zeilen = sichtbar.length
+      ? sichtbar.map(p => `<li><b>${p.name}</b><span>im ${p.richtung}, ${Math.round(p.hoehe)}° hoch${p.hell < -1.5 ? ", sehr hell" : p.hell < 1 ? ", gut sichtbar" : ""}</span></li>`).join("")
+      : `<li><span>Gerade steht kein Planet gut sichtbar am Himmel.</span></li>`;
+    return `<h2>Heute am Himmel <small>um ${uhr} Uhr</small></h2><ul class="himmel">${zeilen}</ul>`;
+  }
+
+  function zeichneRaum() {
+    const el = $("k-start");
+    const bild = el.querySelector(".raumbild");
+    const inhalt = document.createElement("div"); inhalt.className = "raum-inhalt";
+    const himmel = istAbend() ? himmelHTML() : null;
+    if (himmel) inhalt.innerHTML = himmel + (startDaten ? startHTML(startDaten, true) : "");
+    else if (startDaten) inhalt.innerHTML = startHTML(startDaten, false);
+    else inhalt.innerHTML = `<h2>Raumfahrt</h2><p class="hinweis">Startkalender gerade nicht erreichbar.</p>`;
+    el.innerHTML = ""; if (bild) el.appendChild(bild); el.appendChild(inhalt);
     tickStart();
   }
+
+  function ladeHimmel() {
+    if (himmelGeladen) return; himmelGeladen = true;
+    const sk = document.createElement("script");
+    sk.src = "https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js";
+    sk.onload = zeichneRaum;
+    document.head.appendChild(sk);
+  }
+
+  function zeichneStart(s) { startZeit = Date.parse(s.zeit); startDaten = s; zeichneRaum(); }
   function tickStart() {
     const el = $("countdown"); if (!el || !startZeit) return;
     let s = Math.round((startZeit - Date.now()) / 1000);
@@ -200,13 +323,15 @@
   function ladeAlles() {
     datumUndUhr(); zeichneMond(); zeichneUnterricht();
     ladeNachrichten();
-    Q.start().then(zeichneStart).catch(() => { $("k-start").innerHTML = `<h2>Nächster Raketenstart</h2><p class="hinweis">Startkalender gerade nicht erreichbar.</p>`; });
+    Q.start().then(zeichneStart).catch(() => zeichneRaum());
     Q.heute().then(zeichneHeute).catch(() => { $("heute").innerHTML = ""; });
     Q.ferien().then(f => { $("ferien").innerHTML = ferienText(f); }).catch(() => {});
-    Q.ort().then(async ort => {
+    Q.ort().then(async o => {
+      ort = o;
       try {
-        const w = await Q.wetter(ort);
-        $("wetter").innerHTML = `${w.temp}°, ${e(TW.wetter(w.code))}<br><small>${ort.name ? e(ort.name) + ", " : ""}${w.min}° bis ${w.max}°</small>`;
+        const w = await Q.wetter(o);
+        sonne = w; ladeHimmel(); zeichneRaum();
+        $("wetter").innerHTML = `${w.temp}°, ${e(TW.wetter(w.code))}<br><small>${o.name ? e(o.name) + ", " : ""}${w.min}° bis ${w.max}°</small>`;
         const tl = Math.round(w.tageslaenge / 60);
         $("sonne").innerHTML = `${w.auf} bis ${w.unter}<br><small>${Math.floor(tl / 60)} h ${tl % 60} min Tageslicht</small>`;
       } catch (_) {}
@@ -216,6 +341,7 @@
   ladeAlles();
   setInterval(() => { datumUndUhr(); tickStart(); }, 1000);
   setInterval(ladeNachrichten, C.AKTUALISIEREN_MINUTEN * 60000);
+  setInterval(() => { if (istAbend()) zeichneRaum(); }, 10 * 60000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) ladeNachrichten(); });
   let warte; addEventListener("resize", () => { clearTimeout(warte); warte = setTimeout(() => letzteDaten && zeichneNachrichten(letzteDaten), 200); });
 

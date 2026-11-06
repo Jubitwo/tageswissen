@@ -44,6 +44,14 @@ const istSport = i => SPORT_ADRESSE.test(i.link || "") || SPORT_WORT.test((i.tit
 /* dpa-Kurzmeldungen der ZEIT (zeit.de/news/…) sind sehr kleinteilig – weglassen */
 const ZU_KLEINTEILIG = /zeit\.de\/news\//i;
 
+/* Weltraumbild: Astronomy Picture of the Day (Feed), sonst NASA Image of the Day */
+const BILDQUELLEN = [
+  { name: "NASA APOD",          url: "https://science.nasa.gov/feed/apod-basic/" },
+  { name: "NASA Bild des Tages", url: "https://www.nasa.gov/feeds/iotd-feed/" }
+];
+
+/* Wörter, die beim Erkennen gemeinsamer Themen nicht zählen */
+const FUELLWOERTER = new Set(("der die das den dem des ein eine einer eines einem einen und oder aber nicht nach vor bei mit von vom zum zur für fuer auf aus über ueber unter gegen wegen durch noch auch schon wie was wer wird werden wurde soll sollen will wollen kann koennen hat haben ist sind war mehr neue neuer neues erste ersten zwei drei jahr jahre heute gestern morgen live ticker liveblog news newsblog dpa sich ihre ihren seine seinen dass doch nur alle beim ohne viele sagt sagen laut bericht berichte medienberichte the and for with from that this after over into about says said new will has have are was were not more than his her their they what when how why who".split(" ")));
 const TAGESSCHAU_API = "https://www.tagesschau.de/api2u/homepage/";
 
 const CORS = {
@@ -57,7 +65,7 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
 
     const cache = caches.default;
-    const schluessel = new Request(new URL("/tageswissen-v1", request.url).toString());
+    const schluessel = new Request(new URL("/tageswissen-v2", request.url).toString());
     const frisch = new URL(request.url).searchParams.has("frisch");
     if (!frisch) {
       const treffer = await cache.match(schluessel);
@@ -65,17 +73,20 @@ export default {
     }
 
     const status = {};
-    const [ts, nachrichten, wissenschaft] = await Promise.all([
+    const [ts, nachrichten, wissenschaft, bilder] = await Promise.all([
       holeTagesschau(status),
-      holeGruppe(NACHRICHTEN, status, 4),
-      holeGruppe(WISSENSCHAFT, status, 4)
+      holeGruppe(NACHRICHTEN, status, 12),
+      holeGruppe(WISSENSCHAFT, status, 4),
+      holeGruppe(BILDQUELLEN, status, 3)
     ]);
 
     const daten = {
       erstellt: new Date().toISOString(),
       eilmeldungen: ts.eil,
       top: ts.top,
-      schlagzeilen: mische(nachrichten, 40),
+      themen: themen([ts.top, ...nachrichten]),
+      schlagzeilen: mische(nachrichten.map(g => g.slice(0, 4)), 40),
+      raumbild: (bilder.flat().find(b => b.bild) || null),
       wissenschaft: mische(wissenschaft, 30),
       quellen: status
     };
@@ -167,6 +178,60 @@ function mische(gruppen, max) {
   return eindeutig.slice(0, max);
 }
 
+/* ---------- Das große Thema: worüber berichten viele Medien gleichzeitig? ---------- */
+function stichworte(titel) {
+  const woerter = titel.toLowerCase()
+    .replace(/[äÄ]/g, "ae").replace(/[öÖ]/g, "oe").replace(/[üÜ]/g, "ue").replace(/ß/g, "ss")
+    .split(/[^a-z0-9]+/)
+    .filter(w => w.length >= 4 && !FUELLWOERTER.has(w) && !/^\d+$/.test(w));
+  return {
+    kurz: new Set(woerter.map(w => w.slice(0, 6))),               // Wortstamm (Aigner/Aigners)
+    lang: new Set(woerter.filter(w => w.length >= 10))             // lange, eindeutige Wörter
+  };
+}
+
+function passt(m, h) {
+  let gemeinsam = 0;
+  for (const w of m.w.kurz) if (h.kurz.has(w)) gemeinsam++;
+  for (const w of m.w.lang) if (h.lang.has(w)) gemeinsam += 2;     // ein langes gemeinsames Wort genügt
+  return gemeinsam;
+}
+
+function themen(gruppen) {
+  const alle = gruppen.flat().filter(i => i && i.titel)
+    .map(i => ({ ...i, w: stichworte(i.titel + " " + (i.dachzeile || "")) }));
+  let haufen = [];
+  const einordnen = m => {
+    let bester = null, besteZahl = 0;
+    for (const h of haufen) { const z = passt(m, h); if (z > besteZahl) { besteZahl = z; bester = h; } }
+    if (bester && besteZahl >= 2) {
+      bester.meldungen.push(m);
+      m.w.kurz.forEach(w => bester.kurz.add(w)); m.w.lang.forEach(w => bester.lang.add(w));
+    } else haufen.push({ kurz: new Set(m.w.kurz), lang: new Set(m.w.lang), meldungen: [m] });
+  };
+  alle.forEach(einordnen);
+  // Zweiter Durchgang: Einzelmeldungen noch einmal gegen die gewachsenen Themen prüfen
+  const einzeln = haufen.filter(h => h.meldungen.length === 1).map(h => h.meldungen[0]);
+  haufen = haufen.filter(h => h.meldungen.length > 1);
+  einzeln.forEach(einordnen);
+
+  const vorrang = ["tagesschau", "ZDFheute", "Deutschlandfunk", "DW", "SZ", "ZEIT", "FAZ", "SPIEGEL", "BBC", "Guardian"];
+  return haufen
+    .map(h => {
+      const quellen = [...new Set(h.meldungen.map(m => m.quelle))];
+      const vertreter = [...h.meldungen].sort((a, b) => vorrang.indexOf(a.quelle) - vorrang.indexOf(b.quelle))[0];
+      const zeit = h.meldungen.map(m => Date.parse(m.zeit) || 0).reduce((a, b) => Math.max(a, b), 0);
+      return {
+        titel: vertreter.titel, link: vertreter.link, quelle: vertreter.quelle,
+        dachzeile: vertreter.dachzeile || "", text: vertreter.text || "",
+        zeit: zeit ? new Date(zeit).toISOString() : null,
+        anzahl: quellen.length, quellen
+      };
+    })
+    .sort((a, b) => b.anzahl - a.anzahl || (Date.parse(b.zeit) || 0) - (Date.parse(a.zeit) || 0))
+    .slice(0, 12);
+}
+
 /* ---------- RSS / Atom / RDF ohne Bibliotheken ---------- */
 
 function parseFeed(xml) {
@@ -182,7 +247,9 @@ function parseFeed(xml) {
     const beschr = text(feld(b, "description") || feld(b, "summary") || feld(b, "content"));
     const bild =
       (b.match(/<media:(?:content|thumbnail)\b[^>]*url="([^"]+)"/i) || [])[1] ||
-      (b.match(/<enclosure\b[^>]*url="([^"]+)"[^>]*type="image/i) || [])[1] || null;
+      ((b.match(/<enclosure\b[^>]*>/i) || [""])[0].match(/url="([^"]+\.(?:jpe?g|png|webp|gif)[^"]*)"/i) || [])[1] ||
+      (b.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').match(/<img\b[^>]*src="(https?:[^"]+\.(?:jpe?g|png|webp)[^"]*)"/i) || [])[1] ||
+      null;
     return {
       titel,
       link: link || "",

@@ -80,31 +80,39 @@ Q.ferien = async () => {
 /* Heute vor … Jahren – Wikipedia (deutsch) */
 Q.heute = async () => {
   const d = new Date();
-  const basis = `https://api.wikimedia.org/feed/v1/wikipedia/de/onthisday`;
+  const basis = "https://api.wikimedia.org/feed/v1/wikipedia/de/onthisday";
   const tag = `${TW.zweistellig(d.getMonth() + 1)}/${TW.zweistellig(d.getDate())}`;
-  const [ausgewaehlt, ereignisse] = await Promise.all([
-    TW.holeJSON(`${basis}/selected/${tag}`).then(j => j.selected || []).catch(() => []),
-    TW.holeJSON(`${basis}/events/${tag}`).then(j => j.events || []).catch(() => [])
-  ]);
-  const passt = e => C.WISSEN_STICHWORTE.some(w => e.text.toLowerCase().includes(w.toLowerCase()));
-  const alle = [...ausgewaehlt, ...ereignisse].filter(e => e.text && e.year);
-  const wahl = alle.find(passt) || ausgewaehlt[0] || alle[0];
-  if (!wahl) throw new Error("leer");
-  const seite = wahl.pages?.[0];
-  return {
-    jahr: wahl.year, text: wahl.text,
-    link: seite?.content_urls?.desktop?.page || `https://de.wikipedia.org/wiki/${d.getDate()}._${TW.MONATE[d.getMonth()]}`,
-    wissen: passt(wahl)
+  const hole = typ => TW.holeJSON(`${basis}/${typ}/${tag}`).then(j => (j[typ] || []).filter(e => e.text && e.year)).catch(() => []);
+  const [geburten, tode, ereignisse, ausgewaehlt] = await Promise.all([hole("births"), hole("deaths"), hole("events"), hole("selected")]);
+  const FORSCHUNG = /(physiker|mathematiker|chemiker|astronom|naturwissenschaftler|informatiker|biolog|erfinder|ingenieur|raumfahrer|astronaut|kosmonaut|geolog|nobelpreis|forscher)/i;
+  const passtWissen = e => C.WISSEN_STICHWORTE.some(w => e.text.toLowerCase().includes(w.toLowerCase()));
+  const link = e => e.pages?.[0]?.content_urls?.desktop?.page || `https://de.wikipedia.org/wiki/${d.getDate()}._${TW.MONATE[d.getMonth()]}`;
+  const person = (e, art) => {
+    const teile = e.text.split(/,\s*/);
+    return { art, jahr: e.year, name: (e.pages?.[0]?.titles?.normalized || teile[0]).replace(/\s*\(.*\)$/, ""),
+             text: teile.slice(1).join(", ").replace(/\s*\(†.*?\)|\s*\(\*.*?\)/g, "").trim() || e.text, link: link(e) };
   };
+  // Bevorzugt: berühmte Forscherinnen und Forscher (die mit dem längsten Wikipedia-Eintrag zuerst)
+  const bekannt = l => l.filter(e => FORSCHUNG.test(e.text)).sort((a, b) => (b.pages?.[0]?.extract?.length || 0) - (a.pages?.[0]?.extract?.length || 0));
+  const g = bekannt(geburten)[0]; if (g) return person(g, "geboren");
+  const t = bekannt(tode)[0]; if (t) return person(t, "gestorben");
+  const ev = [...ausgewaehlt, ...ereignisse].find(passtWissen) || ausgewaehlt[0] || ereignisse[0];
+  if (!ev) throw new Error("leer");
+  return { art: "ereignis", jahr: ev.year, text: ev.text, link: link(ev) };
 };
 
 /* Nächster Raketenstart – Launch Library 2 (The Space Devs) */
 Q.start = async () => {
-  const gemerkt = merke.lies("start", 20);
+  const gemerkt = merke.lies("start2", 20);
   if (gemerkt) return gemerkt;
-  const j = await TW.holeJSON("https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=6&mode=normal");
+  const j = await TW.holeJSON("https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=15&mode=normal");
   const jetzt = Date.now() - 60 * 60000;
-  const s = (j.results || []).find(r => Date.parse(r.net) > jetzt) || j.results?.[0];
+  const kommend = (j.results || []).filter(r => Date.parse(r.net) > jetzt);
+  // Spannende Starts zuerst: mit Crew, Mond, große Raketen, europäische Starts
+  const SPANNEND = /(crew|artemis|orion|starship|falcon heavy|new glenn|ariane|vega|soyuz ms|shenzhou|axiom|dragon|starliner|esa|jaxa|isro|gaganyaan|lunar|moon|mond|mars)/i;
+  const text = r => [r.name, r.mission?.name, r.mission?.description, r.launch_service_provider?.name, r.rocket?.configuration?.full_name].join(" ");
+  const bald = kommend.filter(r => Date.parse(r.net) - Date.now() < 10 * 864e5);
+  const s = bald.find(r => SPANNEND.test(text(r))) || kommend.find(r => SPANNEND.test(text(r)) && Date.parse(r.net) - Date.now() < 21 * 864e5) || kommend[0] || j.results?.[0];
   if (!s) throw new Error("leer");
   const mission = s.mission?.name || "";
   const unbekannt = !mission || /unknown|unbekannt|tbd/i.test(mission);
@@ -116,8 +124,9 @@ Q.start = async () => {
     ort: s.pad?.location?.name || s.pad?.name || "",
     zeit: s.net,
     status: s.status?.name || s.status?.abbrev || "",
+    crew: /crew|shenzhou|soyuz ms|axiom|gaganyaan|starliner/i.test(text(s)),
     link: "https://www.google.com/search?q=" + encodeURIComponent((s.name || "") + " launch")
   };
-  merke.schreib("start", d);
+  merke.schreib("start2", d);
   return d;
 };
