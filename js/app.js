@@ -192,21 +192,22 @@
 
   /* ---------- Rechts: Für den Unterricht ---------- */
   const FAECHER = { MATHE: "Mathematik", PHYSIK: "Physik", CHEMIE: "Chemie" };
-  function schultagNr() {
-    const start = new Date(window.TW_UNTERRICHT.START + "T12:00:00"), heute = new Date(); heute.setHours(12, 0, 0, 0);
-    let n = 0;
-    for (let d = new Date(start); d <= heute; d.setDate(d.getDate() + 1)) { const w = d.getDay(); if (w !== 0 && w !== 6) n++; }
-    return Math.max(0, n - 1); // am Wochenende bleibt der Freitag stehen
+  // Fakten in zufälliger Reihenfolge: jeder Fakt kommt einmal dran, bevor sich etwas wiederholt
+  const reihenfolge = {}, position = { MATHE: 0, PHYSIK: 0, CHEMIE: 0 };
+  function mische(n) {
+    const a = [...Array(n).keys()];
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
   }
-  const verschiebung = { MATHE: 0, PHYSIK: 0, CHEMIE: 0 };
   function faktIndex(fach) {
-    const liste = window.TW_UNTERRICHT[fach];
-    const i = schultagNr() + verschiebung[fach];
-    return ((i * 37) % liste.length + liste.length) % liste.length; // Klassenstufen gemischt
+    const n = window.TW_UNTERRICHT[fach].length;
+    if (!reihenfolge[fach] || reihenfolge[fach].length !== n) reihenfolge[fach] = mische(n);
+    return reihenfolge[fach][((position[fach] % n) + n) % n];
   }
   const waehleFakt = fach => window.TW_UNTERRICHT[fach][faktIndex(fach)];
-  // Chemie jeden Tag, dazu abwechselnd Mathematik und Physik
-  const heutigeFaecher = () => ["CHEMIE", schultagNr() % 2 === 0 ? "MATHE" : "PHYSIK"];
+  // Chemie immer, dazu im Wechsel Mathematik oder Physik (Start zufällig)
+  let zweitesFach = Math.random() < .5 ? "MATHE" : "PHYSIK";
+  const heutigeFaecher = () => ["CHEMIE", zweitesFach];
 
   function faktHTML(fach) {
     const x = waehleFakt(fach), name = FAECHER[fach];
@@ -250,10 +251,10 @@
     beamerFach = null;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
-  function blaettern(schritt) { if (!beamerFach) return; verschiebung[beamerFach] += schritt; zeigeBeamer(beamerFach); zeichneUnterricht(); }
+  function blaettern(schritt) { if (!beamerFach) return; position[beamerFach] += schritt; zeigeBeamer(beamerFach); zeichneUnterricht(); }
 
   document.addEventListener("click", ev => {
-    const w = ev.target.closest(".weiter"); if (w) { verschiebung[w.dataset.fach]++; zeichneUnterricht(); return; }
+    const w = ev.target.closest(".weiter"); if (w) { position[w.dataset.fach]++; zeichneUnterricht(); return; }
     const g = ev.target.closest(".fakt-gross"); if (g) { zeigeBeamer(g.dataset.fach); return; }
     const b = ev.target.closest("[data-b]");
     if (b) { if (b.dataset.b === "zu") schliesseBeamer(); else blaettern(b.dataset.b === "vor" ? 1 : -1); }
@@ -385,6 +386,21 @@
 
   // Bildschirmschoner-Modus: Adresse mit ?schoner aufrufen – dunkler, ohne Lichteffekte, ohne Mauszeiger
   if (new URLSearchParams(location.search).has("schoner")) document.body.classList.add("schoner");
+  // Helligkeit des Ambient-Lichts aus den Einstellungen (0 = aus, 1 = sehr hell)
+  if (typeof C.LICHT === "number") document.documentElement.style.setProperty("--licht", Math.max(0, Math.min(1, C.LICHT)));
+
+  // Fakten wechseln von selbst – im Bildschirmschoner alle 3 Minuten, sonst alle 10 (FAKT_WECHSEL_MINUTEN in config.js überschreibt das)
+  function wechsleFakten() {
+    const k = $("k-unt");
+    if (!k || !window.TW_UNTERRICHT || beamerFach || document.hidden) return;
+    position.CHEMIE++;
+    zweitesFach = zweitesFach === "MATHE" ? "PHYSIK" : "MATHE";
+    position[zweitesFach]++;
+    k.classList.add("wechsel");
+    setTimeout(() => { zeichneUnterricht(); k.classList.remove("wechsel"); }, 800);
+  }
+  const faktMinuten = C.FAKT_WECHSEL_MINUTEN || (document.body.classList.contains("schoner") ? 3 : 10);
+  setInterval(wechsleFakten, faktMinuten * 60000);
 
   ladeAlles();
   setInterval(() => { datumUndUhr(); tickStart(); }, 1000);

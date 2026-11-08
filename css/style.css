@@ -322,3 +322,28 @@ body.schoner .unterricht, body.schoner .start.mit-bild { -webkit-backdrop-filter
 body.schoner .top img { filter: grayscale(1) contrast(1.05) brightness(.7); }
 body.schoner .raumbild img { filter: grayscale(1) brightness(.55); }
 body.schoner .seite { filter: brightness(.88); }
+
+/* Stärke des Ambient-Lichts – einstellbar in js/config.js (LICHT) */
+.ambiente.an { opacity: var(--licht, .55); }
+
+/* ===================== Zufällige Fakten + Bildschirmschoner-Bewegung ===================== */
+/* Fakten blenden beim automatischen Wechsel weich aus und wieder ein */
+#k-unt .fakt { transition: opacity .8s ease, filter .8s ease; }
+#k-unt.wechsel .fakt { opacity: 0; filter: blur(6px); }
+#k-unt .fakt { animation: auftauchen .9s ease backwards; }
+
+/* Schutz vor eingebrannten Bildern: Im Bildschirmschoner wandert die ganze Seite
+   sehr langsam ein paar Pixel hin und her (nicht sichtbar als Bewegung) und atmet
+   ganz leicht in der Helligkeit. */
+body.schoner .seite { animation: wandern 1200s ease-in-out infinite, atmen 180s ease-in-out infinite; }
+@keyframes wandern {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(14px, -8px); }
+  40% { transform: translate(-6px, 12px); }
+  60% { transform: translate(-14px, -4px); }
+  80% { transform: translate(8px, 10px); }
+}
+@keyframes atmen { 0%, 100% { filter: brightness(.88); } 50% { filter: brightness(.74); } }
+/* Die Uhr wandert zusätzlich ein Stück, weil sie das hellste feste Element ist */
+body.schoner .uhr { animation: uhr-wandern 660s ease-in-out infinite; }
+@keyframes uhr-wandern { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }

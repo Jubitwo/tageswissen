@@ -17,6 +17,9 @@ window.TW_CONFIG = {
   // Eigener kostenloser Schlüssel: https://api.nasa.gov
   NASA_KEY: "DEMO_KEY",
 
+  // Helligkeit des Ambient-Lichts hinter der Seite: 0 = ganz schwarz, 0.55 = Standard, 0.85 = hell
+  LICHT: 0.55,
+
   // Wie oft die Seite sich im Hintergrund aktualisiert (Minuten)
   AKTUALISIEREN_MINUTEN: 5,
 
